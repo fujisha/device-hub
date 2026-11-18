@@ -293,7 +293,10 @@ pub const KNOWN: &[KnownDevice] = &[
     lg(0xC088, "pro-wireless", "PRO Wireless", Transport::Wired),
     // G703 LIGHTSPEED (HERO) 有線 — 実機確認 (logiprobe: HID++ 4.2, 0x8100 format 4,
     // sector 255B, ボタン 6, DPI 100-25600/50)。無線は同じ c539 受信機。
-    lg(0xC090, "g703-hero", "G703 LIGHTSPEED", Transport::Wired),
+    KnownDevice {
+        verified: true, // 2026-11-18: DPI・ポーリング書き込みと抜き差し後の保持を実機確認
+        ..lg(0xC090, "g703-hero", "G703 LIGHTSPEED", Transport::Wired)
+    },
     // LIGHTSPEED 受信機 (PRO Wireless 同梱)。中のマウスは device index 1。
     // 表示名はドライバが feature 0x0005 (DeviceName) で実機名に置き換える。
     lg(
