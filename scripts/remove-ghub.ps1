@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Logicool G HUB を完全に削除する (Device HUB へ置き換えたあとに実行)。
 

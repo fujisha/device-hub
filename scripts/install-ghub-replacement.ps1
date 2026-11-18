@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Device HUB を G HUB の代わりとして入れる: ビルド → 配置 → 常時起動登録 → (任意) G HUB 削除。
 
