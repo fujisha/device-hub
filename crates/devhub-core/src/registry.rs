@@ -291,6 +291,9 @@ pub const KNOWN: &[KnownDevice] = &[
     // 同じ IF の FF00:0001 (short 0x10) は受信機の接続通知用にドライバが別に開く。
     // PRO Wireless 有線 (USB ケーブル接続時、device index 0xFF)。
     lg(0xC088, "pro-wireless", "PRO Wireless", Transport::Wired),
+    // G703 LIGHTSPEED (HERO) 有線 — 実機確認 (logiprobe: HID++ 4.2, 0x8100 format 4,
+    // sector 255B, ボタン 6, DPI 100-25600/50)。無線は同じ c539 受信機。
+    lg(0xC090, "g703-hero", "G703 LIGHTSPEED", Transport::Wired),
     // LIGHTSPEED 受信機 (PRO Wireless 同梱)。中のマウスは device index 1。
     // 表示名はドライバが feature 0x0005 (DeviceName) で実機名に置き換える。
     lg(

@@ -1051,12 +1051,13 @@ fn spawn_link_watch(
 }
 
 fn button_names(n: usize) -> Vec<ButtonSlot> {
-    const NAMES: [&str; 5] = [
+    const NAMES: [&str; 6] = [
         "左ボタン",
         "右ボタン",
         "ホイールクリック",
         "サイド (後ろ)",
         "サイド (前)",
+        "DPI ボタン",
     ];
     (0..n)
         .map(|i| ButtonSlot {
@@ -1503,6 +1504,12 @@ impl DeviceDriver for LogiDriver {
     fn read(&self) -> HubResult<DeviceState> {
         let l = self.load()?;
         let p = &l.current;
+        // いま使っている DPI 枠 (本体の DPI ボタンで変わる)。保存値 (起動時の枠) とは別なので、
+        // 読めればこちらを表示する (G703 実機で default=1 / current=2 を確認)。
+        let live_stage = self
+            .with_onboard("DPI 枠", |ob, _| ob.pp.request(ob.idx, 0x0B, &[]))
+            .ok()
+            .and_then(|r| p.stages().iter().position(|&(i, _)| i == r[0] as usize));
         let mut settings = BTreeMap::new();
         settings.insert(
             "polling".into(),
@@ -1533,7 +1540,7 @@ impl DeviceDriver for LogiDriver {
             },
             settings,
             mouse: Some(MouseState {
-                active_stage: p.active_stage(),
+                active_stage: live_stage.unwrap_or_else(|| p.active_stage()),
                 stages,
                 buttons: (0..nbtn).map(|i| p.button(i)).collect(),
                 macros: vec![],
@@ -2051,5 +2058,38 @@ mod tests {
                 assert_eq!(m.sectors[&s].len(), size);
             }
         }
+    }
+    /// G703 実機 (c090 有線) のプロファイル 1 をそのまま解釈する。
+    #[test]
+    fn g703_real_profile() {
+        let txt = include_str!("../fixtures/logitech/g703-wired-profile1.txt");
+        let raw: Vec<u8> = txt
+            .lines()
+            .filter(|l| !l.starts_with('#'))
+            .filter_map(|l| l.split_once(": "))
+            .flat_map(|(_, h)| {
+                h.split_whitespace()
+                    .map(|b| u8::from_str_radix(b, 16).unwrap())
+            })
+            .collect();
+        assert_eq!(raw.len(), 255);
+        let d = OnboardDesc::parse(&[1, 4, 1, 5, 1, 6, 0x10, 0, 0xFF, 0x0A, 4, 0, 0, 0, 0, 0]);
+        assert_eq!(d.sector_size, 255);
+        assert!(d.layout_known());
+        let mut p = Profile::new(raw);
+        assert!(p.crc_ok());
+        assert!(!p.bits_le);
+        assert_eq!(p.report_rate_hz(), 1000);
+        assert_eq!(p.stages(), vec![(0, 400), (1, 800), (2, 1600), (3, 3200)]);
+        assert_eq!(p.active_stage(), 1);
+        assert_eq!(p.button(5), ButtonAction::Dpi(DpiFn::Cycle));
+        assert_eq!(p.name(), "");
+        let led = decode_led(&p.led(0));
+        assert_eq!((led.effect, led.brightness), (led::CYCLE, 100));
+        assert_eq!(encode_led(&led)[..9], p.led(0)[..9]);
+        // 書き換えて封をしても CRC は合う (255B セクタ)。
+        p.set_report_rate_hz(500);
+        p.seal();
+        assert!(p.crc_ok());
     }
 }

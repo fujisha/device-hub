@@ -166,10 +166,10 @@ G HUB の「オンボードメモリ」機能そのもの。マウス内フラ�
 
 `cargo run -p devhub-hid --example logiprobe` の出力を下に貼って埋める。
 
-- [ ] c088 / c539 の usage page/usage が `FF00:0002` であること
-- [ ] getDescription の sectorSize / profileFormat / buttonCount
+- [x] usage page/usage が `FF00:0002` であること (G703 c090)
+- [x] getDescription の sectorSize / profileFormat / buttonCount (G703)
 - [ ] getCurrentProfile の値 (ROM で動いているとき 0x0101 か)
-- [ ] ボタンビットのエンディアン (`bits_le`)
+- [x] ボタンビットのエンディアン (`bits_le`) — BE (G703)
 - [ ] LED ゾーン 0 がロゴか
 - [ ] 1 項目ずつ変えて往復 (DPI → ポーリング → ボタン → LED)、電源再投入で保持されるか
 - [ ] 受信機の short collection の 0x41 通知でスリープ/復帰が取れるか
@@ -180,7 +180,18 @@ G HUB の挙動を観察したいときは、G HUB を起動したまま `logipr
 
 ### 実機ログ
 
-(未取得)
+**G703 LIGHTSPEED (HERO) 有線 046d:c090** (2026-11-18、読み取りのみ):
+
+- HID++ 4.2、device index 0xFF。IF2 に FF00:0001 / FF00:0002。
+- features: 0x0001 0x0003 0x0005 0x1D4B 0x0020 **0x1001** 0x8071 **0x8100** 0x8110 **0x8060** **0x2201** …
+- FW: `MPM 22.02.B0015` (type 0) / `BL1 05.02.B0015` (bootloader)。
+- 0x2201 list `00 64 E0 32 64 00` → 100–25600 / 50。0x8060 mask `0b10001011` → 125/250/500/1000。
+- 0x8100 desc `01 04 01 05 01 06 10 00 FF 0A 04` → **format 4, profiles 5, buttons 6, sector 255B**、mode=1 (onboard)。
+- getCurrentProfile = 0x0001 (ユーザー 1)。ディレクトリ有効 (1 のみ enabled)。
+- プロファイル CRC は本実装の CRC-CCITT と一致 (`fixtures/logitech/g703-wired-profile1.txt`, テスト `g703_real_profile`)。
+- ボタンビットは **BE** (`80 01 00 01` = 左)。slot 5 = `90 05` (DPI 順送り)。
+- LED は 2 ゾーンとも `03 … 1F 40 64` = サイクル 8000ms / 明るさ 100 — 本書のレイアウト通り。
+- 起動時 DPI 枠 (off 1) = 1 と、現在の DPI 枠 (0x8100 func 0xB) = 2 は別物 → 表示は現在枠を優先。
 
 ---
 
