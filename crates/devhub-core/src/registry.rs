@@ -52,6 +52,27 @@ const fn mf(
     }
 }
 
+const fn lg(
+    pid: u16,
+    model: &'static str,
+    name: &'static str,
+    transport: Transport,
+) -> KnownDevice {
+    KnownDevice {
+        vid: 0x046D,
+        pid,
+        usage_page: Some(0xFF00),
+        usage: Some(0x0002),
+        kind: DeviceKind::Mouse,
+        vendor: "Logicool",
+        model,
+        name,
+        transport,
+        driver: DriverKind::Logitech,
+        verified: false,
+    }
+}
+
 /// 対応表。新デバイスはここへ追加する。
 ///
 /// mouse.fit の PID は `https://www.mouse.fit/Config/env-models.json` (2026-11 取得) の
@@ -265,6 +286,26 @@ pub const KNOWN: &[KnownDevice] = &[
         driver: DriverKind::Lamzu,
         verified: false,
     },
+    // ---------------------------------------------------------------- マウス (Logicool G / HID++ 2.0)
+    // 設定 IF = vendor collection FF00:0002 (HID++ long report 0x11)。
+    // 同じ IF の FF00:0001 (short 0x10) は受信機の接続通知用にドライバが別に開く。
+    // PRO Wireless 有線 (USB ケーブル接続時、device index 0xFF)。
+    lg(0xC088, "pro-wireless", "PRO Wireless", Transport::Wired),
+    // LIGHTSPEED 受信機 (PRO Wireless 同梱)。中のマウスは device index 1。
+    // 表示名はドライバが feature 0x0005 (DeviceName) で実機名に置き換える。
+    lg(
+        0xC539,
+        "lightspeed-c539",
+        "PRO Wireless",
+        Transport::Wireless24G,
+    ),
+    // PRO X SUPERLIGHT 受信機 — 同じ HID++ 2.0 / 0x8100 構成 (実機未確認)。
+    lg(
+        0xC547,
+        "lightspeed-c547",
+        "PRO X SUPERLIGHT",
+        Transport::Wireless24G,
+    ),
 ];
 
 /// 列挙結果 (VID/PID/usage) に合う既知デバイス。`0xFFFF` のプレースホルダは一致しない。

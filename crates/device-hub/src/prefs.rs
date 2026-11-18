@@ -32,6 +32,9 @@ pub struct Prefs {
     pub eq_presets: Vec<EqPreset>,
     /// ライブライティング (DirectDrive) の設定。
     pub livefx: crate::livefx::FxPrefs,
+    /// × で閉じても終了せず最小化して常駐する (G HUB の置き換え用)。
+    #[serde(default = "keep_running_default")]
+    pub keep_running: bool,
     /// 保存した設定プロファイル (デバイスごとの Change 列)。
     #[serde(default)]
     pub profiles: Vec<SavedProfile>,
@@ -108,6 +111,10 @@ pub struct ProcRule {
     pub enabled: bool,
 }
 
+fn keep_running_default() -> bool {
+    true
+}
+
 fn proc_rule_enabled() -> bool {
     true
 }
@@ -135,6 +142,7 @@ impl Default for Prefs {
             idle_throttle: true,
             fw_check: true,
             fw_native_notify: false,
+            keep_running: true,
             nicknames: Default::default(),
             eq_presets: vec![],
             livefx: Default::default(),
