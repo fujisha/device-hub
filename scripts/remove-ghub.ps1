@@ -194,5 +194,9 @@ if ($RemoveDrivers) {
 }
 
 Write-Host ''
+if ($WhatIfPreference) {
+    Write-Host '予行演習 (-WhatIf) のため何も削除していません。上の "WhatIf:" 行が削除される対象です (無ければ G HUB は残っていません)。' -ForegroundColor Yellow
+    exit 0
+}
 Write-Host 'G HUB の削除が完了しました。PC を再起動すると残ったファイルロックも解放されます。' -ForegroundColor Green
 Write-Host 'マウスの設定は本体 (オンボードメモリ) に残っています。Device HUB で変更できます。'
