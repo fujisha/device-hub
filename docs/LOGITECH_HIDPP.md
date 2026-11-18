@@ -9,7 +9,7 @@ Device HUB で Logicool G HUB を置き換えるためのメモ。対象は **PR
 - 常駐: `crates/device-hub/src/autostart.rs`
 - G HUB 削除: `scripts/remove-ghub.ps1` / 一括導入: `scripts/install-ghub-replacement.ps1`
 
-> **状態: G703 LIGHTSPEED 有線 (c090) で読み書き確認済み (2026-11-18)。PRO Wireless・無線経由は未確認。**
+> **状態: G703 LIGHTSPEED (有線 c090 / 受信機 c539) で DPI・ポーリング・ボタン・LED の読み書きを確認済み (2026-11-18)。PRO Wireless 本体は未確認。**
 > 公開されている HID++ 2.0 仕様と、libratbag / Solaar の
 > オンボードプロファイル実装を元に組んだもの。実機で `logiprobe` の出力を取り、
 > 下の「実機で確かめること」を埋めてから registry の `verified` を true にする。
@@ -173,7 +173,8 @@ G HUB の「オンボードメモリ」機能そのもの。マウス内フラ�
 - [x] ボタンビットのエンディアン (`bits_le`) — BE (G703)
 - [ ] LED ゾーン 0 がロゴか
 - [x] DPI・ポーリングの書き込み、ケーブル抜き差し後の保持 (G703 有線)
-- [ ] ボタン・LED の書き込み
+- [x] ボタン・LED の書き込み (G703、LED は 0x8071 を本体制御へ戻し 2 ゾーンへ書いて反映)
+- [x] LIGHTSPEED 受信機 (c539) 経由の読み書き (G703)
 - [ ] 受信機の short collection の 0x41 通知でスリープ/復帰が取れるか
 
 G HUB の挙動を観察したいときは、G HUB を起動したまま `logiprobe -- sniff` を実行すると
