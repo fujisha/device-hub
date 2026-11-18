@@ -121,6 +121,14 @@ impl HubBackend for RealHub {
                     .map(str::to_string)
                     .unwrap_or_else(|| spec.name.into()),
             };
+            // ドライバがペア先の実機名を確定済みならそれを出す (受信機名・既定名のままにしない)。
+            let name = self
+                .detected
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .get(&id.0)
+                .map(|(_, n)| n.clone())
+                .unwrap_or(name);
             names.insert(id.0.clone(), name.clone());
             out.push(DeviceInfo {
                 id,
@@ -228,7 +236,9 @@ impl HubBackend for RealHub {
             DriverKind::Walkplay => Arc::new(walkplay::open(dev, info)?),
             DriverKind::Atk => Arc::new(atk::open(dev, info, events)?),
             DriverKind::Lamzu => Arc::new(lamzu::open(dev, info, events)?),
-            DriverKind::Logitech => Arc::new(logitech::open(dev, info, events)?),
+            DriverKind::Logitech => {
+                Arc::new(logitech::open(dev, info, events, self.detected.clone())?)
+            }
             DriverKind::Unsupported => {
                 return Err(HubError::NotImplemented("このデバイスのドライバ"))
             }

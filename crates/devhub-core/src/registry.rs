@@ -302,7 +302,7 @@ pub const KNOWN: &[KnownDevice] = &[
     lg(
         0xC539,
         "lightspeed-c539",
-        "PRO Wireless",
+        "LIGHTSPEED マウス",
         Transport::Wireless24G,
     ),
     // PRO X SUPERLIGHT 受信機 — 同じ HID++ 2.0 / 0x8100 構成 (実機未確認)。

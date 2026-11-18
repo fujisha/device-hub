@@ -52,6 +52,7 @@ pub mod feat {
     pub const ADJUSTABLE_DPI: u16 = 0x2201;
     pub const REPORT_RATE: u16 = 0x8060;
     pub const ONBOARD_PROFILES: u16 = 0x8100;
+    pub const RGB_EFFECTS: u16 = 0x8071;
 }
 
 // ====================================================================== リンク
@@ -965,13 +966,29 @@ pub struct LogiDriver {
     feats: Mutex<Feats>,
     caps: Mutex<Capabilities>,
     events: Option<Arc<dyn Fn(HubEvent) + Send + Sync>>,
+    /// RealHub と共有: DeviceId → (model, 実機名)。受信機経由でも一覧に実機名を出す。
+    detected: Arc<Mutex<HashMap<String, (String, String)>>>,
     stop: Arc<AtomicBool>,
+}
+
+/// 0x8071 RgbEffects の LED 制御権 (func 5, Solaar の RGBControl と同じ)。
+/// 応答 `[_, mode]`: 0 = 本体ファーム (オンボードプロファイルの LED が効く)、1 = ソフト。
+/// G HUB はソフト制御にしたまま終わることがあり、そのままだとプロファイルの LED を
+/// 書いても光り方が変わらない (G703 で LED が反映されなかった件の対策) — 本体へ戻す。
+fn release_led_control<L: Link>(pp: &mut Hidpp<L>) -> Option<u8> {
+    let idx = pp.feature(feat::RGB_EFFECTS).ok()??;
+    let r = pp.request(idx, 5, &[]).ok()?;
+    if r[1] != 0 {
+        pp.request(idx, 5, &[1, 0]).ok()?;
+    }
+    Some(r[1])
 }
 
 pub fn open(
     dev: hidapi::HidDevice,
     info: DeviceInfo,
     events: Option<Arc<dyn Fn(HubEvent) + Send + Sync>>,
+    detected: Arc<Mutex<HashMap<String, (String, String)>>>,
 ) -> HubResult<LogiDriver> {
     dev.set_blocking_mode(false).ok();
     let index = if info.transport == Transport::Wired {
@@ -990,6 +1007,7 @@ pub fn open(
         feats: Mutex::new(Feats::default()),
         caps: Mutex::new(Capabilities::empty()),
         events,
+        detected,
         stop,
     };
     d.detect();
@@ -1167,6 +1185,7 @@ impl LogiDriver {
         }
         f.report_rates.sort_unstable();
 
+        release_led_control(&mut pp);
         // 名前 (0x0005) と FW (0x0003)。
         let name = read_name(&mut pp);
         let fw = read_fw(&mut pp);
@@ -1184,6 +1203,15 @@ impl LogiDriver {
         }
         i.supported = f.onboard.is_some_and(|d| d.layout_known());
         i.asleep = false;
+        self.detected
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .insert(i.id.0.clone(), (i.model.clone(), i.name.clone()));
+        let snapshot = i.clone();
+        drop(i);
+        if let Some(ev) = &self.events {
+            ev(HubEvent::Info(snapshot.id.clone(), Box::new(snapshot)));
+        }
     }
 
     fn onboard(&self) -> HubResult<OnboardDesc> {
@@ -1599,10 +1627,17 @@ impl DeviceDriver for LogiDriver {
                 }
                 self.edit(|p| p.set_button(*slot, action))
             }
-            Change::Lighting { area: 0, state } => self.edit(|p| {
-                p.set_led(0, encode_led(state));
+            Change::Lighting { area: 0, state } => {
+                // G HUB は 2 ゾーンに同じ値を書く (G703 実機) — 両方へ書く。
+                let l = encode_led(state);
+                self.edit(|p| {
+                    p.set_led(0, l);
+                    p.set_led(1, l);
+                    Ok(())
+                })?;
+                release_led_control(&mut self.pp());
                 Ok(())
-            }),
+            }
             Change::Profile(n) => {
                 let desc = self.onboard()?;
                 if *n >= desc.profile_count {

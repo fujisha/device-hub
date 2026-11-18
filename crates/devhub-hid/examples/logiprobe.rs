@@ -196,6 +196,17 @@ fn main() {
         println!("\n## 0x8060 ReportRate: supported mask {list:#010b}, current {cur} ms");
     }
 
+    if let Ok(Some(idx)) = pp.feature(0x8071) {
+        match pp.request(idx, 5, &[]) {
+            Ok(r) => println!(
+                "\n## 0x8071 RgbEffects: LED 制御 = {} (0=本体 1=ソフト) raw {}",
+                r[1],
+                hex(&r[..4])
+            ),
+            Err(e) => println!("\n## 0x8071 RgbEffects: func5 失敗 {e:?}"),
+        }
+    }
+
     // ---- オンボードプロファイル
     let Ok(Some(ob)) = pp.feature(0x8100) else {
         println!("\n0x8100 OnboardProfiles なし");
